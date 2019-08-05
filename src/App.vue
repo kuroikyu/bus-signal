@@ -1,25 +1,28 @@
 <template>
   <div id="app">
     <h1>Bus Service</h1>
-
     <section v-if="errored">
       <p>We're sorry, we're not able to retrieve this information at the moment, please try back later.</p>
     </section>
-
     <section v-else>
       <div v-if="loading">Loading...</div>
-
       <div
         v-else
-        v-for="bus in info"
-        v-bind:key="bus.id"
+        v-for="(busData, stopName) in info"
+        v-bind:key="stopName"
       >
-        {{ bus.line }}:
-        <span>{{ bus.departure_time }}</span>
-        <span> {{ bus.departure_time | distanceInWordsToNow }}</span>
-
+        <h3>{{ stopName }}</h3>
+        <ul>
+          <li
+            v-for="bus in busData"
+            v-bind:key="bus.id"
+          >
+            {{ bus.line }}:
+            <span>{{ bus.departure_time }}</span>
+            <span> {{ bus.departure_time | distanceInWordsToNow }}</span>
+          </li>
+        </ul>
       </div>
-
     </section>
   </div>
 </template>
@@ -29,13 +32,13 @@ import axios from 'axios'
 import dateFns from 'date-fns'
 
 import {APP_ID, APP_KEY} from '../api-details'
-import {BUS_STOP, KEY_LINES} from '../bus-details'
+import {BUS_STOPS, KEY_LINES} from '../bus-details'
 
 export default {
   name: 'app',
   data() {
     return {
-      info: [],
+      info: null,
       loading: true,
       errored: false
     }
@@ -58,29 +61,33 @@ export default {
     }
   },
   mounted() {
-    axios
-      .get(`https://transportapi.com/v3/uk/bus/stop/${BUS_STOP}/live.json?app_id=${APP_ID}&app_key=${APP_KEY}&group=route&nextbuses=no`)
-      .then(response => response.data.departures)
-      .then(departures => {
-        // take only buses in the key list, remove not found values and flatten the resulting array
-        const busService = [...KEY_LINES.map(line => departures[line])].filter(el => el).flat()
-        // discard unneeded attributes and simplify names for the remaining ones
-        const neatBusService = busService.map((bus, i) => {
-          return {
-            id: `idBusService${i}`,
-            line: bus.line,
-            direction: `${bus.direction} - ${bus.dir}`,
-            departure_time: bus.best_departure_estimate,
-          }
+    this.info = {}
+    BUS_STOPS.forEach(busStop => {
+      axios
+        .get(`https://transportapi.com/v3/uk/bus/stop/${busStop.atcoCode}/live.json?app_id=${APP_ID}&app_key=${APP_KEY}&group=route&nextbuses=no`)
+        .then(response => response.data.departures)
+        .then(departures => {
+          // take only buses in the key list, remove not found values and flatten the resulting array
+          const busService = [...KEY_LINES.map(line => departures[line])].filter(el => el).flat()
+          // discard unneeded attributes and simplify names for the remaining ones
+          const neatBusService = busService.map((bus, i) => {
+            return {
+              id: `id${busStop.atcoCode}${i}`,
+              line: bus.line,
+              direction: `${bus.direction} - ${bus.dir}`,
+              departure_time: bus.best_departure_estimate,
+            }
+          })
+          // assign result to vue's data object
+          this.info = {...this.info, [busStop.name]: neatBusService}
+
         })
-        // assign result to vue's data object
-        this.info.push(...neatBusService)
-      })
       .catch(error => {
         console.error(error)
         this.errored = true
       })
       .finally(() => this.loading = false)
+    })
   },
 }
 </script>
