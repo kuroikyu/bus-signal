@@ -17,9 +17,9 @@
             v-for="bus in busData"
             v-bind:key="bus.id"
           >
-            {{ bus.line }}:
-            <span>{{ bus.departure_time }}</span>
-            <span> {{ bus.departure_time | distanceInWordsToNow }}</span>
+            <span class="busLine">{{ bus.line }}: </span>
+            <strong>{{ bus.departure_time }} </strong>
+            <span class="departureTime"> {{ bus.departure_time | distanceInWordsToNow }}</span>
           </li>
         </ul>
       </div>
@@ -99,5 +99,11 @@ export default {
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;
   margin-top: 60px;
+}
+.busLine {
+}
+.departureTime {
+  color: #1aad63;
+  color: #701dc3;
 }
 </style>
