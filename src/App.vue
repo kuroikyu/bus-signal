@@ -84,7 +84,7 @@ export default {
           const sortedBusService = formatedBusService.sort((a, b) => a.departure_time.localeCompare(b.departure_time))
 
           // assign result to vue's data object
-          this.info = {...this.info, [busStop.name]: sortedBusService}
+          this.info[busStop.name] = sortedBusService
 
         })
       .catch(error => {
