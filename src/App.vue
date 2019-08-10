@@ -70,6 +70,7 @@ export default {
               line: bus.line,
               lineLabel: lineDetails.label,
               lineColor: lineDetails.color,
+              textColor: lineDetails.text,
               direction: `${bus.direction} - ${bus.dir}`,
               departure_time: bus.best_departure_estimate,
             }
@@ -92,11 +93,46 @@ export default {
 </script>
 
 <style>
+* {
+  box-sizing: border-box;
+}
+
 #app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
+  font-family: 'Montserrat', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;
   margin-top: 60px;
+}
+
+h1 {
+  text-align: center;
+}
+
+section {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+ul {
+  padding: 0;
+  display: grid;
+  grid-gap: .5em;
+
+  grid-template-columns: repeat(auto-fit, minmax(11em, 1fr));
+  grid-template-rows: auto;
+
+  grid-auto-flow: column dense;
+}
+
+@media (max-width: 980px) {
+  ul {
+    grid-auto-flow: row dense;
+  }
+}
+
+li {
+  list-style: none;
+  display: contents;
 }
 </style>
