@@ -1,29 +1,6 @@
-# bus-signal
+# Bus Signal
 
-## Project setup
-```
-yarn install
-```
+![screenshot of the app showing 3 stops with multiple buses](./screenshot.png)
 
-### Compiles and hot-reloads for development
-```
-yarn run serve
-```
 
-### Compiles and minifies for production
-```
-yarn run build
-```
-
-### Run your tests
-```
-yarn run test
-```
-
-### Lints and fixes files
-```
-yarn run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+**Bus Signal** is a small tool I created using [transportapi.com](transportapi.com) to quickly learn what the time for the next bus will be at my most commonly used stops.
