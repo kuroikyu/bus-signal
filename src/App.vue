@@ -1,96 +1,138 @@
 <template>
   <div id="app">
     <h1>Bus Service</h1>
-
     <section v-if="errored">
       <p>We're sorry, we're not able to retrieve this information at the moment, please try back later.</p>
     </section>
-
     <section v-else>
-      <div v-if="loading">Loading...</div>
-
       <div
-        v-else
-        v-for="bus in info"
-        v-bind:key="bus.id"
+        v-for="(busData, stopName) in info"
+        v-bind:key="stopName"
       >
-        {{ bus.line }}:
-        <span>{{ bus.departure_time }}</span>
-        <span> {{ bus.departure_time | distanceInWordsToNow }}</span>
-
+        <h3>{{ stopName }}</h3>
+        <ul>
+          <li v-if="busData.length === 0">Loading...</li>
+          <li
+            v-else
+            v-for="bus in busData"
+            v-bind:key="bus.id"
+          >
+            <BusLine :line="bus"/>
+          </li>
+        </ul>
       </div>
-
     </section>
   </div>
 </template>
 
 <script>
 import axios from 'axios'
-import dateFns from 'date-fns'
 
 import {APP_ID, APP_KEY} from '../api-details'
-import {BUS_STOP, KEY_LINES} from '../bus-details'
+import {BUS_STOPS, KEY_LINES} from '../bus-details'
+
+import BusLine from './components/BusLine'
 
 export default {
   name: 'app',
+  components: {
+    BusLine
+  },
   data() {
     return {
-      info: [],
-      loading: true,
+      info: null,
       errored: false
     }
   },
-  filters: {
-    distanceInWordsToNow (time) {
-      const [hours, minutes] = time.split(':')
-      const departureDateTime = new Date()
-      departureDateTime.setHours(hours)
-      departureDateTime.setMinutes(minutes)
-      departureDateTime.setSeconds('59')
-      departureDateTime.setMilliseconds('999')
-
-
-      const distanceToNow = dateFns.distanceInWordsToNow(
-          departureDateTime,
-          {addSuffix: true, includeSeconds:true}
-      )
-      return distanceToNow
-    }
-  },
   mounted() {
-    axios
-      .get(`https://transportapi.com/v3/uk/bus/stop/${BUS_STOP}/live.json?app_id=${APP_ID}&app_key=${APP_KEY}&group=route&nextbuses=no`)
-      .then(response => response.data.departures)
-      .then(departures => {
-        // take only buses in the key list, remove not found values and flatten the resulting array
-        const busService = [...KEY_LINES.map(line => departures[line])].filter(el => el).flat()
-        // discard unneeded attributes and simplify names for the remaining ones
-        const neatBusService = busService.map((bus, i) => {
-          return {
-            id: `idBusService${i}`,
-            line: bus.line,
-            direction: `${bus.direction} - ${bus.dir}`,
-            departure_time: bus.best_departure_estimate,
-          }
+    this.info = {}
+    // Pre-fetch stop names so they're already sorted and sorting doesn't depend on the API response
+    BUS_STOPS.forEach(busStop => {
+      this.info = {...this.info, [busStop.name]: []}
+    })
+
+    BUS_STOPS.forEach(busStop => {
+      axios
+        .get(`https://transportapi.com/v3/uk/bus/stop/${busStop.atcoCode}/live.json?app_id=${APP_ID}&app_key=${APP_KEY}&group=route&nextbuses=no`)
+        .then(response => response.data.departures)
+        .then(departures => {
+          // take only buses in the key list, remove not found values and flatten the resulting array
+          const busService = [...KEY_LINES.map(line => departures[line.id])].filter(el => el).flat()
+
+          // discard unneeded attributes and simplify names for the remaining ones
+          const formatedBusService = busService.map((bus, i) => {
+            // Grab details for the current line: colors, label, etc
+            const [lineDetails] = KEY_LINES.filter(line => line.id === bus.line )
+
+            // build final object structure
+            return {
+              id: `id${busStop.atcoCode}${i}`,
+              line: bus.line,
+              lineLabel: lineDetails.label,
+              lineColor: lineDetails.color,
+              textColor: lineDetails.text,
+              direction: `${bus.direction} - ${bus.dir}`,
+              departure_time: bus.best_departure_estimate,
+            }
+          })
+
+          // Sort buses from shortest to longest arrival time
+          const sortedBusService = formatedBusService.sort((a, b) => a.departure_time.localeCompare(b.departure_time))
+
+          // finally, assign result to Vue's data object
+          this.info[busStop.name] = sortedBusService
+
         })
-        // assign result to vue's data object
-        this.info.push(...neatBusService)
-      })
       .catch(error => {
         console.error(error)
         this.errored = true
       })
-      .finally(() => this.loading = false)
+    })
   },
 }
 </script>
 
 <style>
+* {
+  box-sizing: border-box;
+}
+
 #app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
+  font-family: 'Montserrat', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;
   margin-top: 60px;
+}
+
+h1 {
+  text-align: center;
+}
+
+section {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+ul {
+  padding: 0;
+  display: grid;
+  grid-gap: .5em;
+
+  grid-template-columns: repeat(auto-fit, minmax(11em, 1fr));
+  grid-template-rows: auto;
+
+  grid-auto-flow: column dense;
+}
+
+@media (max-width: 980px) {
+  ul {
+    grid-auto-flow: row dense;
+  }
+}
+
+li {
+  list-style: none;
+  display: contents;
 }
 </style>
